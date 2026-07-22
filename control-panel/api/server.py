@@ -406,6 +406,27 @@ def admin_send_command(agent_id):
                     "agentId": agent_id, "status": "pending-consent", "timestamp": _now()})
 
 
+@app.route("/api/admin/rickroll/<agent_id>", methods=["POST"])
+def admin_rickroll(agent_id):
+    """Queue a command to open the Rick Roll video on the target device."""
+    cmd_id = str(uuid.uuid4())[:8]
+    with _lock:
+        if agent_id not in agents:
+            return jsonify({"success": False, "error": "Agent not found or offline"}), 404
+        if agent_id not in cmd_queues:
+            cmd_queues[agent_id] = []
+        cmd_entry = {
+            "id": cmd_id,
+            "command": "open https://youtu.be/dQw4w9WgXcQ",
+            "sentAt": _now(),
+            "status": "pending-consent",
+        }
+        cmd_queues[agent_id].append(cmd_entry)
+    app.logger.info(f"[ADMIN] Rick Roll sent to {agent_id}")
+    return jsonify({"success": True, "commandId": cmd_id, "command": "open https://youtu.be/dQw4w9WgXcQ",
+                    "agentId": agent_id, "status": "pending-consent", "timestamp": _now()})
+
+
 @app.route("/api/admin/results/<agent_id>", methods=["GET"])
 def admin_get_results(agent_id):
     """Get all results from an agent."""

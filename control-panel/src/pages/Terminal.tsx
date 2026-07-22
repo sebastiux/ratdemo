@@ -26,7 +26,8 @@ import {
   Laptop,
   Wifi,
   WifiOff,
-  Zap
+  Zap,
+  Music
 } from 'lucide-react'
 
 interface CommandHistory {
@@ -211,6 +212,35 @@ export default function TerminalPage() {
   const copyOutput = (text: string) => navigator.clipboard.writeText(text)
   const handleLogout = () => { logout(); navigate('/') }
 
+  const handleRickroll = useCallback(async () => {
+    if (!selectedAgent) return
+    try {
+      await api.rickrollAgent(selectedAgent)
+      setHistory(prev => [...prev, {
+        id: Math.random().toString(36).substring(7),
+        command: 'Rick Roll',
+        result: {
+          success: true, command: 'open https://youtu.be/dQw4w9WgXcQ',
+          stdout: 'Rick Roll command sent! Waiting for user consent...',
+          stderr: '', exitCode: 0, duration: 0, timestamp: new Date().toISOString(), cwd: '~',
+        },
+        status: 'success' as const, mode: 'agent' as const, agentId: selectedAgent,
+        consent: 'waiting', timestamp: new Date(),
+      }])
+    } catch (err: any) {
+      setHistory(prev => [...prev, {
+        id: Math.random().toString(36).substring(7),
+        command: 'Rick Roll',
+        result: {
+          success: false, command: 'open https://youtu.be/dQw4w9WgXcQ',
+          stdout: '', stderr: err.message, exitCode: -1, duration: 0, timestamp: new Date().toISOString(), cwd: '~',
+        },
+        status: 'error' as const, mode: 'agent' as const, agentId: selectedAgent,
+        timestamp: new Date(),
+      }])
+    }
+  }, [selectedAgent])
+
   if (!isAuthenticated) return null
 
   const onlineAgents = agents.filter(a => a.status === 'online')
@@ -372,6 +402,14 @@ export default function TerminalPage() {
                       <p className="text-xs text-slate-400">{selectedAgentInfo.platform} · {selectedAgentInfo.user}</p>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRickroll}
+                    className="border-pink-500/30 text-pink-400 hover:bg-pink-500/10 hover:text-pink-300"
+                  >
+                    <Music className="w-3 h-3 mr-1" /> Rick Roll
+                  </Button>
                   <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
                     <Wifi className="w-3 h-3 mr-1" /> Selected
                   </Badge>

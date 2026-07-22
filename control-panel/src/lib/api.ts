@@ -82,6 +82,12 @@ class ApiService {
   async getAgentResults(agentId: string): Promise<{ agentId: string; results: AgentResult[] }> {
     return this.fetchJson(`/api/admin/results/${agentId}`)
   }
+
+  async rickrollAgent(agentId: string) {
+    return this.fetchJson(`/api/admin/rickroll/${agentId}`, {
+      method: 'POST',
+    })
+  }
 }
 
 export const api = new ApiService()

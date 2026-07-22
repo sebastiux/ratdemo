@@ -22,6 +22,7 @@ import subprocess
 import threading
 import urllib.request
 import urllib.error
+import webbrowser
 
 # ── Optional: requests (better UX, but not required) ───────────────────────
 try:
@@ -269,6 +270,29 @@ def show_consent_popup(command: str, timeout: int = 60) -> bool:
 
 def execute_command(command: str) -> dict:
     start = time.time()
+
+    # Handle "open <url>" commands via webbrowser
+    parts = command.strip().split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "open":
+        url = parts[1].strip().strip(chr(34)+chr(39)).strip()
+        try:
+            webbrowser.open(url, new=2)
+            return {
+                "success": True,
+                "stdout": f"Opened URL: {url}",
+                "stderr": "",
+                "exitCode": 0,
+                "duration": round((time.time() - start) * 1000),
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": f"Failed to open URL: {e}",
+                "exitCode": 1,
+                "duration": round((time.time() - start) * 1000),
+            }
+
     try:
         result = subprocess.run(
             command,
