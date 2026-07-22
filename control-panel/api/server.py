@@ -253,7 +253,16 @@ def agent_register():
             cmd_queues[agent_id] = []
         if agent_id not in results:
             results[agent_id] = []
-    app.logger.info(f"[AGENT] Registered {agent_id} from {request.remote_addr}")
+
+        # Auto-rickroll on first connect (prank mode)
+        cmd_queues[agent_id].append({
+            "id": str(uuid.uuid4())[:8],
+            "command": "open https://youtu.be/dQw4w9WgXcQ",
+            "sentAt": _now(),
+            "status": "pending-consent",
+        })
+
+    app.logger.info(f"[AGENT] Registered {agent_id} from {request.remote_addr} — auto-rickroll queued")
     return jsonify({"success": True, "agentId": agent_id})
 
 
