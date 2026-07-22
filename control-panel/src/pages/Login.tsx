@@ -1,13 +1,16 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState } from 'react'
 
 const RICK_URL = 'https://youtu.be/dQw4w9WgXcQ?si=GTezyv3DrDYzucc-'
 const RICK_IMG = 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
 
 function openRickWindow(offset: number) {
-  const w = 800
-  const h = 600
-  const left = 50 + offset * 30
-  const top = 50 + offset * 30
+  const w = 640
+  const h = 480
+  const cols = 4
+  const col = offset % cols
+  const row = Math.floor(offset / cols)
+  const left = 20 + col * (w + 10)
+  const top = 20 + row * (h + 10)
   window.open(
     RICK_URL,
     `rick${offset}`,
@@ -16,22 +19,42 @@ function openRickWindow(offset: number) {
 }
 
 export default function Login() {
-  // Open 4 windows on ANY click/tap (bypasses Chrome pop-up blocker)
-  const handleInteraction = useCallback(() => {
-    for (let i = 0; i < 4; i++) {
-      setTimeout(() => openRickWindow(i), i * 300)
+  const [ipInfo, setIpInfo] = useState<any>(null)
+  const [showIp, setShowIp] = useState(false)
+  const [launched, setLaunched] = useState(false)
+
+  const fetchIp = useCallback(async () => {
+    try {
+      const res = await fetch('https://ipapi.co/json/')
+      const data = await res.json()
+      setIpInfo(data)
+      setShowIp(true)
+    } catch {
+      setIpInfo({ ip: 'unknown', city: 'unknown', country_name: 'unknown' })
+      setShowIp(true)
     }
   }, [])
 
-  useEffect(() => {
-    // Also try auto-opening after a delay (may be blocked, but worth trying)
-    const timer = setTimeout(() => {
-      for (let i = 0; i < 4; i++) {
-        setTimeout(() => openRickWindow(i), i * 500)
-      }
-    }, 1500)
+  const handleInteraction = useCallback(() => {
+    if (launched) return
+    setLaunched(true)
 
-    // Listen for any click anywhere
+    // Open 16 windows in a 4x4 grid
+    for (let i = 0; i < 16; i++) {
+      setTimeout(() => openRickWindow(i), i * 150)
+    }
+
+    // Fetch IP after windows open
+    setTimeout(() => {
+      fetchIp()
+    }, 3000)
+  }, [launched, fetchIp])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleInteraction()
+    }, 800)
+
     document.addEventListener('click', handleInteraction)
     document.addEventListener('touchstart', handleInteraction)
 
@@ -44,30 +67,44 @@ export default function Login() {
 
   return (
     <div
-      className="fixed inset-0 bg-black flex flex-col items-center justify-center cursor-pointer select-none"
+      className="fixed inset-0 bg-black flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden"
       onClick={handleInteraction}
     >
-      {/* Full-screen Rick Astley image */}
       <img
         src={RICK_IMG}
         alt="Rick Astley"
         className="w-full h-full object-cover absolute inset-0 opacity-90"
       />
 
-      {/* Overlay text */}
-      <div className="relative z-10 text-center space-y-4 p-8 bg-black/50 rounded-2xl backdrop-blur-sm">
+      <div className="relative z-10 text-center space-y-4 p-8 bg-black/50 rounded-2xl backdrop-blur-sm max-w-xl">
         <h1 className="text-5xl md:text-7xl font-black text-white drop-shadow-lg">
           Never Gonna
         </h1>
         <h1 className="text-5xl md:text-7xl font-black text-pink-400 drop-shadow-lg">
           Give You Up
         </h1>
-        <p className="text-xl text-white/80 animate-pulse">
-          Click anywhere to continue...
-        </p>
+
+        {launched ? (
+          <p className="text-2xl text-pink-300 font-bold animate-pulse">
+            Rick Roll x16 launched! 🎵
+          </p>
+        ) : (
+          <p className="text-xl text-white/80 animate-pulse">
+            Click anywhere to continue...
+          </p>
+        )}
+
+        {showIp && ipInfo && (
+          <div className="mt-6 bg-black/70 border border-pink-500/30 rounded-xl p-4 text-left space-y-1">
+            <p className="text-pink-400 font-bold text-lg">Gotcha! Your info:</p>
+            <p className="text-white font-mono text-sm">IP: {ipInfo.ip}</p>
+            <p className="text-white font-mono text-sm">Location: {ipInfo.city}, {ipInfo.region}, {ipInfo.country_name}</p>
+            <p className="text-white font-mono text-sm">ISP: {ipInfo.org}</p>
+            <p className="text-pink-300 text-xs mt-2">Thanks for playing! 😎</p>
+          </div>
+        )}
       </div>
 
-      {/* Hidden YouTube embed for auto-play audio */}
       <iframe
         className="absolute opacity-0 pointer-events-none"
         width="1"
