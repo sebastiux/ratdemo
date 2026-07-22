@@ -11,45 +11,29 @@ export interface ExecuteResult {
   warning?: string | null
   timestamp: string
   cwd: string
+  consent?: string
 }
 
-export interface SystemInfo {
-  cpu: {
-    model: string
-    cores: number
-    loadAvg: number[]
-  }
-  memory: {
-    total: number
-    used: number
-    free: number
-    percentage: number
-  }
-  os: {
-    platform: string
-    release: string
-    hostname: string
-    uptime: number
-  }
-  network: Array<{
-    name: string
-    addresses: Array<{
-      address: string
-      family: string
-      internal: boolean
-    }>
-  }>
-}
-
-export interface Session {
+export interface Agent {
   id: string
-  target: string
-  ip: string
-  port: number
-  os: string
+  hostname: string
+  platform: string
   user: string
-  connectedAt: string
+  ip: string
+  registeredAt: string
+  lastSeen: number
   status: string
+}
+
+export interface AgentResult {
+  command: string
+  success: boolean
+  stdout: string
+  stderr: string
+  exitCode: number
+  duration: number
+  consent: string
+  timestamp: string
 }
 
 class ApiService {
@@ -75,10 +59,6 @@ class ApiService {
     return this.fetchJson('/api/health')
   }
 
-  async getSystemInfo(): Promise<SystemInfo> {
-    return this.fetchJson('/api/system')
-  }
-
   async execute(command: string, cwd?: string): Promise<ExecuteResult> {
     return this.fetchJson('/api/execute', {
       method: 'POST',
@@ -86,22 +66,21 @@ class ApiService {
     })
   }
 
-  async executeBatch(commands: string[], cwd?: string) {
-    return this.fetchJson('/api/execute/batch', {
+  // ─── Agent Relay ─────────────────────────────────────────────
+
+  async getAgents(): Promise<{ agents: Agent[]; count: number }> {
+    return this.fetchJson('/api/admin/agents')
+  }
+
+  async sendToAgent(agentId: string, command: string) {
+    return this.fetchJson(`/api/admin/send/${agentId}`, {
       method: 'POST',
-      body: JSON.stringify({ commands, cwd }),
+      body: JSON.stringify({ command }),
     })
   }
 
-  async getSessions(): Promise<{ sessions: Session[]; listening: boolean; listenPort: number }> {
-    return this.fetchJson('/api/sessions')
-  }
-
-  async listFiles(targetPath?: string) {
-    return this.fetchJson('/api/files/list', {
-      method: 'POST',
-      body: JSON.stringify({ path: targetPath }),
-    })
+  async getAgentResults(agentId: string): Promise<{ agentId: string; results: AgentResult[] }> {
+    return this.fetchJson(`/api/admin/results/${agentId}`)
   }
 }
 
