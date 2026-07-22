@@ -277,6 +277,42 @@ def agent_download_exe():
                                download_name="controlhub_agent.exe")
 
 
+@app.route("/api/agent/bat", methods=["GET"])
+def agent_download_bat():
+    """Serve a Windows batch file that auto-downloads and runs the agent."""
+    host = request.headers.get("Host", "localhost:3001")
+    scheme = request.headers.get("X-Forwarded-Proto", "http")
+    server_url = f"{scheme}://{host}"
+    bat_content = f"""@echo off
+REM ControlHub Agent Auto-Connector
+REM Downloads and starts the agent silently in the background.
+
+echo [*] Connecting to {server_url} ...
+set "TMPDIR=%TEMP%"
+set "EXE=%TMPDIR%\\controlhub_agent.exe"
+
+REM Download the agent .exe
+powershell -WindowStyle Hidden -Command "Invoke-WebRequest -Uri '{server_url}/api/agent/download-exe' -OutFile '%EXE%' -UseBasicParsing"
+
+if not exist "%EXE%" (
+    echo [!] Download failed. Check your internet connection.
+    pause
+    exit /b 1
+)
+
+echo [*] Starting agent ...
+start /min "" "%EXE%" --server "{server_url}"
+
+echo [+] Agent is running in the background.
+echo     You will see a consent popup when the admin sends a command.
+timeout /t 3 /nobreak >nul
+"""
+    return bat_content, 200, {
+        "Content-Type": "application/bat",
+        "Content-Disposition": 'attachment; filename="connect.bat"',
+    }
+
+
 @app.route("/api/agent/poll/<agent_id>", methods=["GET"])
 def agent_poll(agent_id):
     """Agent long-polls for pending commands. Returns immediately if any exist."""

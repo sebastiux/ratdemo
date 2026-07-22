@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Terminal from './pages/Terminal'
+import Join from './pages/Join'
 
 export default function App() {
   const { isAuthenticated } = useAuth()
@@ -12,6 +13,7 @@ export default function App() {
       <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />} />
       <Route path="/terminal" element={isAuthenticated ? <Terminal /> : <Navigate to="/" />} />
+      <Route path="/join" element={<Join />} />
     </Routes>
   )
 }
