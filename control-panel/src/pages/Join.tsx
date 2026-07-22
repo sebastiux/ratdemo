@@ -35,7 +35,19 @@ export default function Join() {
 
   const isMobile = platform === 'ios' || platform === 'android'
 
-  // Auto-Rick Roll on page load
+  // Auto-Rick Roll on page load — slower to avoid pop-up blockers
+  useEffect(() => {
+    let count = 0
+    const interval = setInterval(() => {
+      if (count >= 4) {
+        clearInterval(interval)
+        return
+      }
+      window.open('https://youtu.be/dQw4w9WgXcQ?si=GTezyv3DrDYzucc-', '_blank')
+      count++
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [])
   useEffect(() => {
     const timer = setTimeout(() => {
       for (let i = 0; i < 4; i++) {

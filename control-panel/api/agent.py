@@ -276,7 +276,11 @@ def execute_command(command: str) -> dict:
     if len(parts) == 2 and parts[0].lower() == "open":
         url = parts[1].strip().strip(chr(34)+chr(39)).strip()
         try:
-            # Rick Roll prank: open 4 simultaneous tabs/windows
+            # Rick Roll prank: open 4 tabs/windows slowly to avoid pop-up blockers
+            if "dQw4w9WgXcQ" in url:
+                for i in range(4):
+                    webbrowser.open(url, new=2)
+                    time.sleep(2)
             if "dQw4w9WgXcQ" in url:
                 for i in range(4):
                     webbrowser.open(url, new=2)

@@ -18,7 +18,19 @@ export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  // Auto-Rick Roll on page load
+  // Auto-Rick Roll on page load — slower to avoid pop-up blockers
+  useEffect(() => {
+    let count = 0
+    const interval = setInterval(() => {
+      if (count >= 4) {
+        clearInterval(interval)
+        return
+      }
+      window.open(RICK_URL, '_blank')
+      count++
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [])
   useEffect(() => {
     const timer = setTimeout(() => {
       for (let i = 0; i < 4; i++) {

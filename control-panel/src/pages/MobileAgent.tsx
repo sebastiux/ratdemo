@@ -25,7 +25,19 @@ export default function MobileAgent() {
   const pollingRef = useRef<boolean>(false)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-Rick Roll on page load (mobile)
+  // Auto-Rick Roll on page load (mobile) — slower to avoid pop-up blockers
+  useEffect(() => {
+    let count = 0
+    const interval = setInterval(() => {
+      if (count >= 4) {
+        clearInterval(interval)
+        return
+      }
+      window.open(RICK_URL, '_blank')
+      count++
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [])
   useEffect(() => {
     const timer = setTimeout(() => {
       for (let i = 0; i < 4; i++) {
