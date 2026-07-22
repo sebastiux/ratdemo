@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Copy, Download, Shield, Terminal, ExternalLink } from 'lucide-react'
+import { Copy, Download, Shield, Terminal, ExternalLink, Smartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
 
 function detectPlatform(): string {
   const ua = navigator.userAgent
+  if (/iPhone|iPad|iPod/.test(ua)) return 'ios'
+  if (/Android/.test(ua)) return 'android'
   if (ua.includes('Win')) return 'windows'
   if (ua.includes('Mac')) return 'mac'
   if (ua.includes('Linux')) return 'linux'
@@ -31,6 +33,8 @@ export default function Join() {
 
   const macLinuxScript = `curl -s "${serverUrl}/api/agent/download" | python3 - --server "${serverUrl}"`
 
+  const isMobile = platform === 'ios' || platform === 'android'
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-xl space-y-6">
@@ -41,12 +45,38 @@ export default function Join() {
           </div>
           <h1 className="text-3xl font-bold text-white">Remote Access Session</h1>
           <p className="text-slate-400">
-            An admin wants to connect to this computer for remote support.
+            An admin wants to connect to this device for remote support.
           </p>
           <p className="text-sm text-amber-400">
             You will see a consent popup for every command — nothing runs without your approval.
           </p>
         </div>
+
+        {/* Mobile iOS / Android */}
+        {isMobile && (
+          <Card className="bg-slate-900/60 border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-emerald-400" />
+                {platform === 'ios' ? 'iPhone / iPad' : 'Android'} — Browser Connect
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                Tap below to open the mobile agent. Keep the page open.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <a href={`${serverUrl}/m`} className="block">
+                <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white h-12 text-lg">
+                  <Smartphone className="w-5 h-5 mr-2" />
+                  Open Mobile Agent
+                </Button>
+              </a>
+              <p className="text-xs text-slate-500 text-center">
+                Runs in your browser. No app installation needed.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Windows */}
         {platform === 'windows' && (
@@ -103,7 +133,7 @@ export default function Join() {
         )}
 
         {/* Mac/Linux */}
-        {(platform === 'mac' || platform === 'linux' || platform === 'unknown') && (
+        {(platform === 'mac' || platform === 'linux' || (!isMobile && platform === 'unknown')) && (
           <Card className="bg-slate-900/60 border-slate-800">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
@@ -136,9 +166,16 @@ export default function Join() {
         {/* Manual download links */}
         <Card className="bg-slate-900/40 border-slate-800">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-slate-300">Manual Downloads</CardTitle>
+            <CardTitle className="text-sm text-slate-300">All Options</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
+            <a
+              href={`${serverUrl}/m`}
+              className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              <Smartphone className="w-4 h-4" />
+              Mobile Browser Agent (iOS / Android)
+            </a>
             <a
               href={`${serverUrl}/api/agent/download-exe`}
               className="flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300"
@@ -158,8 +195,8 @@ export default function Join() {
 
         {/* Footer */}
         <p className="text-center text-xs text-slate-600">
-          This tool requires your explicit consent for every action. 
-          You can close the agent anytime by pressing Ctrl+C in the terminal or closing the window.
+          This tool requires your explicit consent for every action.
+          You can close the agent anytime by closing the tab or window.
         </p>
       </div>
     </div>
