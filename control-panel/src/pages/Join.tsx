@@ -11,11 +11,8 @@ function openRickWindow(offset: number) {
   const row = Math.floor(offset / cols)
   const left = 20 + col * (w + 10)
   const top = 20 + row * (h + 10)
-  window.open(
-    RICK_URL,
-    `rick${offset}`,
-    `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`
-  )
+  const features = `width=${w},height=${h},left=${left},top=${top},popup=yes,resizable=yes,scrollbars=yes,status=yes`
+  window.open(RICK_URL, `_blank${offset}`, features)
 }
 
 export default function Join() {
@@ -35,38 +32,32 @@ export default function Join() {
     }
   }, [])
 
-  const handleInteraction = useCallback(() => {
+  const handleClick = () => {
     if (launched) return
     setLaunched(true)
 
     for (let i = 0; i < 16; i++) {
-      setTimeout(() => openRickWindow(i), i * 150)
+      openRickWindow(i)
     }
 
     setTimeout(() => {
       fetchIp()
     }, 3000)
-  }, [launched, fetchIp])
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      handleInteraction()
-    }, 800)
-
-    document.addEventListener('click', handleInteraction)
-    document.addEventListener('touchstart', handleInteraction)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleInteraction)
-      document.removeEventListener('touchstart', handleInteraction)
-    }
-  }, [handleInteraction])
+      for (let i = 0; i < 16; i++) {
+        openRickWindow(i)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div
       className="fixed inset-0 bg-black flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden"
-      onClick={handleInteraction}
+      onClick={handleClick}
     >
       <img
         src={RICK_IMG}

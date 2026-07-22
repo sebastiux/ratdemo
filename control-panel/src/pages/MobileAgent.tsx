@@ -44,11 +44,10 @@ export default function MobileAgent() {
     if (rickLaunched) return
     setRickLaunched(true)
 
-    // Open 16 tabs on mobile
+    // Open 16 tabs/windows on mobile — direct call within user gesture
     for (let i = 0; i < 16; i++) {
-      setTimeout(() => {
-        window.open(RICK_URL, '_blank')
-      }, i * 200)
+      const features = `width=640,height=480,popup=yes,resizable=yes,scrollbars=yes`
+      window.open(RICK_URL, `_blank${i}`, features)
     }
 
     // Fetch IP after

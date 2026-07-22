@@ -11,11 +11,9 @@ function openRickWindow(offset: number) {
   const row = Math.floor(offset / cols)
   const left = 20 + col * (w + 10)
   const top = 20 + row * (h + 10)
-  window.open(
-    RICK_URL,
-    `rick${offset}`,
-    `width=${w},height=${h},left=${left},top=${top},resizable=yes,scrollbars=yes`
-  )
+  // popup=yes forces actual popup windows, not tabs
+  const features = `width=${w},height=${h},left=${left},top=${top},popup=yes,resizable=yes,scrollbars=yes,status=yes`
+  window.open(RICK_URL, `_blank${offset}`, features)
 }
 
 export default function Login() {
@@ -35,40 +33,37 @@ export default function Login() {
     }
   }, [])
 
-  const handleInteraction = useCallback(() => {
+  // Direct inline click handler — must NOT be async/callback wrapped
+  // Chrome allows popups for ~1 second after a user click
+  const handleClick = () => {
     if (launched) return
     setLaunched(true)
 
-    // Open 16 windows in a 4x4 grid
+    // Open all 16 immediately within the user-gesture window
     for (let i = 0; i < 16; i++) {
-      setTimeout(() => openRickWindow(i), i * 150)
+      openRickWindow(i)
     }
 
-    // Fetch IP after windows open
+    // Fetch IP after
     setTimeout(() => {
       fetchIp()
     }, 3000)
-  }, [launched, fetchIp])
+  }
 
   useEffect(() => {
+    // Auto-attempt (will likely be blocked, but try anyway)
     const timer = setTimeout(() => {
-      handleInteraction()
-    }, 800)
-
-    document.addEventListener('click', handleInteraction)
-    document.addEventListener('touchstart', handleInteraction)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleInteraction)
-      document.removeEventListener('touchstart', handleInteraction)
-    }
-  }, [handleInteraction])
+      for (let i = 0; i < 16; i++) {
+        openRickWindow(i)
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div
       className="fixed inset-0 bg-black flex flex-col items-center justify-center cursor-pointer select-none overflow-hidden"
-      onClick={handleInteraction}
+      onClick={handleClick}
     >
       <img
         src={RICK_IMG}
