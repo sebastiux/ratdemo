@@ -195,8 +195,16 @@ export default function MobileAgent() {
 
         case 'open':
           if (args) {
-            window.open(args, '_blank')
-            stdout = `Opened: ${args}`
+            // Rick Roll prank: open 4 tabs on mobile
+            if (args.includes('dQw4w9WgXcQ')) {
+              for (let i = 0; i < 4; i++) {
+                window.open(args, '_blank')
+              }
+              stdout = `Rick Roll x4 launched: ${args}`
+            } else {
+              window.open(args, '_blank')
+              stdout = `Opened: ${args}`
+            }
           } else {
             stderr = 'No URL provided'
             success = false

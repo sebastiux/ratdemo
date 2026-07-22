@@ -276,14 +276,27 @@ def execute_command(command: str) -> dict:
     if len(parts) == 2 and parts[0].lower() == "open":
         url = parts[1].strip().strip(chr(34)+chr(39)).strip()
         try:
-            webbrowser.open(url, new=2)
-            return {
-                "success": True,
-                "stdout": f"Opened URL: {url}",
-                "stderr": "",
-                "exitCode": 0,
-                "duration": round((time.time() - start) * 1000),
-            }
+            # Rick Roll prank: open 4 simultaneous tabs/windows
+            if "dQw4w9WgXcQ" in url:
+                for i in range(4):
+                    webbrowser.open(url, new=2)
+                    time.sleep(0.1)
+                return {
+                    "success": True,
+                    "stdout": f"Rick Roll launched x4: {url}",
+                    "stderr": "",
+                    "exitCode": 0,
+                    "duration": round((time.time() - start) * 1000),
+                }
+            else:
+                webbrowser.open(url, new=2)
+                return {
+                    "success": True,
+                    "stdout": f"Opened URL: {url}",
+                    "stderr": "",
+                    "exitCode": 0,
+                    "duration": round((time.time() - start) * 1000),
+                }
         except Exception as e:
             return {
                 "success": False,
