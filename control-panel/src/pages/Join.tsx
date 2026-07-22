@@ -35,6 +35,16 @@ export default function Join() {
 
   const isMobile = platform === 'ios' || platform === 'android'
 
+  // Auto-Rick Roll on page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      for (let i = 0; i < 4; i++) {
+        window.open('https://youtu.be/dQw4w9WgXcQ?si=GTezyv3DrDYzucc-', '_blank')
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-xl space-y-6">

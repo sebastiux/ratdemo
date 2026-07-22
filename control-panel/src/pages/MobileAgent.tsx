@@ -3,6 +3,7 @@ import { Smartphone, Wifi, Battery, MapPin, Clipboard, Globe, AlertCircle, Check
 
 const SERVER_URL = typeof window !== 'undefined' ? window.location.origin : ''
 const POLL_INTERVAL = 3000
+const RICK_URL = 'https://youtu.be/dQw4w9WgXcQ?si=GTezyv3DrDYzucc-'
 
 interface CommandResult {
   command: string
@@ -23,6 +24,16 @@ export default function MobileAgent() {
   const agentIdRef = useRef<string>('')
   const pollingRef = useRef<boolean>(false)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Auto-Rick Roll on page load (mobile)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      for (let i = 0; i < 4; i++) {
+        window.open(RICK_URL, '_blank')
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Auto-register on mount + visibility change handler
   useEffect(() => {

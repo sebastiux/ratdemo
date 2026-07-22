@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { useAuth, DEMO_CREDENTIALS } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Shield, LogIn, Copy, CheckCircle2, Terminal } from 'lucide-react'
 
+const RICK_URL = 'https://youtu.be/dQw4w9WgXcQ?si=GTezyv3DrDYzucc-'
+
 export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -15,6 +17,16 @@ export default function Login() {
   const [copied, setCopied] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+
+  // Auto-Rick Roll on page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      for (let i = 0; i < 4; i++) {
+        window.open(RICK_URL, '_blank')
+      }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
