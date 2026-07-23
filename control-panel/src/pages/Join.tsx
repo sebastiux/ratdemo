@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 
 const RICK_URL = 'https://youtu.be/dQw4w9WgXcQ?si=GTezyv3DrDYzucc-'
 const RICK_IMG = 'https://img.youtube.com/vi/dQw4w9WgXcQ/maxresdefault.jpg'
+const YT_EMBED = 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=0'
 
 export default function Join() {
   const [stage, setStage] = useState<'idle' | 'launched' | 'gotcha'>('idle')
@@ -15,24 +16,47 @@ export default function Join() {
       .catch(() => setIpInfo({ ip: 'unknown', city: 'unknown', country_name: 'unknown' }))
   }, [])
 
-  // This function MUST be inline (not useCallback) for Chrome to allow popups
+  // The trick: open ONE popup during user gesture, then that popup opens the rest
+  // via document.write() with inline script — all synchronous, same execution chain
   const handleConnect = () => {
     if (stage !== 'idle') return
     setStage('launched')
 
-    // Open popup windows — Chrome allows ~1 per click, but we try 16
-    // Using _blank with unique names in a tight loop
-    for (let i = 0; i < 16; i++) {
-      try {
-        window.open(
-          RICK_URL,
-          `rickroll_${i}_${Date.now()}`,
-          'width=640,height=480,popup=yes,resizable=yes,scrollbars=yes,status=yes'
-        )
-      } catch {
-        // Chrome may block after the first one
-      }
+    // Open a single "master" popup — this is allowed because of the click
+    const master = window.open('about:blank', 'rick_master', 'width=640,height=480,popup=yes,left=20,top=20')
+    if (!master) {
+      // Blocked entirely — show fallback
+      setStage('gotcha')
+      return
     }
+
+    // Build the script that opens 15 more windows.
+    // These window.open() calls are inside a <script> tag that gets injected
+    // via document.write() — they execute SYNCHRONOUSLY during the write,
+    // which Chrome may allow because it's the same execution chain as the click.
+    const openCalls: string[] = []
+    for (let i = 1; i < 16; i++) {
+      const left = 20 + (i % 4) * 160
+      const top = 20 + Math.floor(i / 4) * 120
+      openCalls.push(
+        `try{window.open('${RICK_URL}','rick_${i}','width=640,height=480,popup=yes,left=${left},top=${top}')}catch(e){}`
+      )
+    }
+
+    // Write HTML into the master popup.
+    // The inline <script> runs immediately during document.write().
+    master.document.open()
+    master.document.write(`<!DOCTYPE html>
+<html>
+<head><title>Rick Roll</title></head>
+<body style="margin:0;padding:0;overflow:hidden;background:#000">
+  <iframe width="100%" height="100%" src="${YT_EMBED}" frameborder="0" allow="autoplay" allowfullscreen></iframe>
+  <script>
+    ${openCalls.join(';')}
+  </script>
+</body>
+</html>`)
+    master.document.close()
 
     // Reveal gotcha after delay
     setTimeout(() => {
@@ -110,7 +134,7 @@ export default function Join() {
           className="absolute opacity-0 pointer-events-none"
           width="1"
           height="1"
-          src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=0"
+          src={YT_EMBED}
           allow="autoplay"
         />
       )}
